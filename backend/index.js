@@ -5,9 +5,12 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dns = require('dns');
 dns.setServers(['1.1.1.1', '8.8.8.8']);
-const app = express();
 
-const allowedOrigins = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'];
+const allowedOrigins = process.env.CLIENT_URL ? 
+  process.env.CLIENT_URL.split(',').map(url => url.trim()) : 
+  ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'];
+
+const app = express();
 
 app.use(cors({
   origin: allowedOrigins,
@@ -39,6 +42,10 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log('Server running on port ' + PORT);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log('Server running on port ' + PORT);
+  });
+}
+
+module.exports = app;

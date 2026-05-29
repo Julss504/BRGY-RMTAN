@@ -1,7 +1,0 @@
-{
-  "build": {
-    "env": {
-      "VITE_API_URL": "https://brgy-rmtan.vercel.app/api/v1"
-    }
-  }
-}

@@ -9,6 +9,7 @@ router.post('/login', authController.login);
 router.post('/logout', authController.logout);
 router.get('/me', authenticate, authController.getMe);
 router.get('/users', authenticate, authorize('admin'), authController.getAllUsers);
+router.get('/users/:id', authenticate, authorize('admin'), authController.getUserById);
 router.put('/users/:id/status', authenticate, authorize('admin'), authController.updateUserStatus);
 router.post('/forgot-password', authController.forgotPassword);
 

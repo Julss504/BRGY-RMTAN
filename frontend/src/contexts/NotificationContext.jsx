@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { Bell, Check, Trash2, AlertCircle, Info } from 'lucide-react'
 import api from '../services/api.js'
 
 const NotificationContext = createContext()

@@ -9,7 +9,7 @@ const register = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
-    
+
     const user = new User({ email, password, fullName, contactNumber });
     await user.save();
     
@@ -22,38 +22,38 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    
+
     if (user.status !== 'approved') {
       return res.status(403).json({ message: 'Account not approved' });
     }
-    
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    
+
     const token = jwt.sign(
       { id: user._id, role: user.role, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
-    
+
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/'
     });
-    
+
     // Include profile completion status
-    const ResidentProfile = require('../models/ResidentProfile');
-    const profile = await ResidentProfile.findOne({ userId: user._id });
-    
+    const ResidentProfileSettings = require('../models/ResidentProfileSettings');
+    const profile = await ResidentProfileSettings.findOne({ userId: user._id });
+
     res.json({ 
       user: { 
         id: user._id, 
@@ -92,8 +92,8 @@ const logout = (req, res) => {
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    const ResidentProfile = require('../models/ResidentProfile');
-    const profile = await ResidentProfile.findOne({ userId: user._id });
+    const ResidentProfileSettings = require('../models/ResidentProfileSettings');
+    const profile = await ResidentProfileSettings.findOne({ userId: user._id });
     res.json({
       ...user.toObject(),
       profileCompleted: profile?.profileCompleted || false
@@ -106,11 +106,36 @@ const getMe = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const { status } = req.query;
-    let query = {};
+    let query = { role: 'resident' };
     if (status) query.status = status;
-    
+
     const users = await User.find(query).select('-password');
-    res.json(users);
+    const ResidentProfileSettings = require('../models/ResidentProfileSettings');
+
+    // Populate profile data for each user - use profile data as primary source
+    const usersWithProfiles = await Promise.all(users.map(async (user) => {
+      const profile = await ResidentProfileSettings.findOne({ userId: user._id });
+      return {
+        ...user.toObject(),
+        fullName: profile?.fullName || user.fullName,
+        contactNumber: profile?.contactNumber || user.contactNumber || '-',
+        purokZone: profile?.purokZone || '-'
+      };
+    }));
+
+    res.json(usersWithProfiles);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -124,11 +149,11 @@ const updateUserStatus = async (req, res) => {
       { status },
       { new: true }
     ).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     // Create notification for the user
     const Notification = require('../models/Notification');
     await Notification.create({
@@ -138,11 +163,11 @@ const updateUserStatus = async (req, res) => {
         : `Your registration has been denied. Reason: ${denyReason || 'Please contact barangay office'}`,
       type: 'system'
     });
-    
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-module.exports = { register, login, logout, getMe, getAllUsers, updateUserStatus, forgotPassword };
+module.exports = { register, login, logout, getMe, getAllUsers, getUserById, updateUserStatus, forgotPassword };

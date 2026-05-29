@@ -1,13 +1,16 @@
 const DocumentRequest = require('../models/DocumentRequest');
+const DocumentRequestArchive = require('../models/DocumentRequestArchive');
 const Notification = require('../models/Notification');
 
 const createDocumentRequest = async (req, res) => {
   try {
-    const { docType, purpose } = req.body;
+    const { docType, purpose, residentId, supportingInfo } = req.body;
+    
     const documentRequest = new DocumentRequest({
-      residentId: req.user.id,
+      residentId: residentId || req.user.id,
       docType,
-      purpose
+      purpose,
+      supportingInfo
     });
     
     await documentRequest.save();
@@ -20,7 +23,7 @@ const createDocumentRequest = async (req, res) => {
 
 const getMyDocumentRequests = async (req, res) => {
   try {
-    const requests = await DocumentRequest.find({ residentId: req.user.id });
+    const requests = await DocumentRequest.find({ residentId: req.user.id, isArchived: false });
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -30,7 +33,7 @@ const getMyDocumentRequests = async (req, res) => {
 const getAllDocumentRequests = async (req, res) => {
   try {
     const { status } = req.query
-    let query = {}
+    let query = { isArchived: false }
     if (status) query.status = status
     const requests = await DocumentRequest.find(query).populate('residentId', 'fullName')
     res.json(requests)
@@ -89,15 +92,63 @@ const updateDocumentRequest = async (req, res) => {
   }
 };
 
-const deleteDocumentRequest = async (req, res) => {
+const archiveDocumentRequest = async (req, res) => {
   try {
-    const request = await DocumentRequest.findByIdAndDelete(req.params.id);
+    const request = await DocumentRequest.findById(req.params.id);
     
     if (!request) {
       return res.status(404).json({ message: 'Document request not found' });
     }
     
-    res.json({ message: 'Document request deleted' });
+    const archive = new DocumentRequestArchive({
+      archivedFrom: request._id,
+      residentId: request.residentId,
+      docType: request.docType,
+      purpose: request.purpose,
+      supportingInfo: request.supportingInfo,
+      status: request.status,
+      adminNote: request.adminNote,
+      archivedBy: req.user.id
+    });
+    
+    await archive.save();
+    await DocumentRequest.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'Document request archived successfully', archive });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const getArchivedDocumentRequests = async (req, res) => {
+  try {
+    const requests = await DocumentRequestArchive.find().populate('residentId', 'fullName');
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const restoreDocumentRequest = async (req, res) => {
+  try {
+    const archive = await DocumentRequestArchive.findById(req.params.id);
+    
+    if (!archive) {
+      return res.status(404).json({ message: 'Archived document request not found' });
+    }
+    
+    const request = new DocumentRequest({
+      residentId: archive.residentId,
+      docType: archive.docType,
+      purpose: archive.purpose,
+      supportingInfo: archive.supportingInfo,
+      status: archive.status
+    });
+    
+    await request.save();
+    await DocumentRequestArchive.findByIdAndDelete(req.params.id);
+    
+    res.json(request);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -109,5 +160,7 @@ module.exports = {
   getAllDocumentRequests,
   getDocumentRequest,
   updateDocumentRequest,
-  deleteDocumentRequest
+  archiveDocumentRequest,
+  getArchivedDocumentRequests,
+  restoreDocumentRequest
 };

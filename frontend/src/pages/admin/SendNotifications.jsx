@@ -6,6 +6,7 @@ import api from '../../services/api.js'
 import { toast } from 'react-hot-toast'
 
 export default function SendNotifications() {
+  const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [targetPurok, setTargetPurok] = useState('')
   const [sendToAll, setSendToAll] = useState(true)
@@ -15,13 +16,15 @@ export default function SendNotifications() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      await api.patch('/notifications/send', {
+      await api.post('/notifications/send', {
+        title,
         message,
         type: 'announcement',
         all: sendToAll,
         targetPurok: sendToAll ? null : targetPurok
       })
       toast.success('Notification sent successfully')
+      setTitle('')
       setMessage('')
     } catch (error) {
       toast.error('Failed to send notification')
@@ -82,6 +85,19 @@ export default function SendNotifications() {
               </select>
             </div>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-navy-800 mb-1">
+              Title
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+              placeholder="Notification title (optional)"
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-navy-800 mb-1">

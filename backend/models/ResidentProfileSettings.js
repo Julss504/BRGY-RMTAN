@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const residentProfileSchema = new mongoose.Schema({
+const residentProfileSettingsSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -23,8 +23,8 @@ const residentProfileSchema = new mongoose.Schema({
   street: { type: String, trim: true },
   purokZone: { type: String, trim: true },
   barangay: { type: String, trim: true, default: 'R.M. Tan' },
-  municipality: { type: String, trim: true, default: 'Manila' },
-  province: { type: String, trim: true, default: 'Metro Manila' },
+  municipality: { type: String, trim: true, default: 'Ormoc' },
+  province: { type: String, trim: true, default: 'Leyte' },
   // Family Background
   fatherFullName: { type: String, trim: true },
   fatherOccupation: { type: String, trim: true },
@@ -55,4 +55,4 @@ const residentProfileSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('ResidentProfile', residentProfileSchema);
+module.exports = mongoose.model('ResidentProfileSettings', residentProfileSettingsSchema);

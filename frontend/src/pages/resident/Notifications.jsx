@@ -89,17 +89,17 @@ export default function Notifications() {
                   </a>
                 )}
               </div>
-{!notification.isRead && (
-                 <button 
-                   onClick={async () => {
-                     await api.patch(`/notifications/${notification._id}/read`)
-                     fetchNotifications()
-                   }}
-                   className="text-navy-600 hover:text-navy-800"
-                 >
-                   <Check className="w-4 h-4" />
-                 </button>
-               )}
+              {!notification.isRead && (
+                <button 
+                  onClick={async () => {
+                    await api.patch(`/notifications/${notification._id}/read`)
+                    fetchNotifications()
+                  }}
+                  className="text-navy-600 hover:text-navy-800"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </Card>
         ))}

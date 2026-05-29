@@ -42,8 +42,8 @@ export default function Sidebar() {
   // Mobile bottom nav
   const renderMobileNav = () => (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-      <div className="flex justify-around items-center h-16">
-        {menuItems.slice(0, 5).map((item) => {
+      <div className="flex flex-nowrap overflow-x-auto justify-start items-center h-16 space-x-2 px-2">
+        {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = location.pathname === item.path
           return (

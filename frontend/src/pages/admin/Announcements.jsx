@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, Plus, Edit, Trash2, Megaphone } from 'lucide-react'
+import { Plus, Edit, Trash2, Megaphone, Archive, ArchiveRestore } from 'lucide-react'
 import Card from '../../components/ui/Card.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -9,7 +9,12 @@ import { toast } from 'react-hot-toast'
 
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState([])
+  const [archivedAnnouncements, setArchivedAnnouncements] = useState([])
   const [showModal, setShowModal] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showArchivedModal, setShowArchivedModal] = useState(false)
+  const [confirmAction, setConfirmAction] = useState(null)
+  const [confirmItemId, setConfirmItemId] = useState(null)
   const [editingAnnouncement, setEditingAnnouncement] = useState(null)
   const [formData, setFormData] = useState({
     title: '',
@@ -27,6 +32,36 @@ export default function Announcements() {
       setAnnouncements(response.data)
     } catch (error) {
       console.error('Failed to fetch announcements:', error)
+    }
+  }
+
+  const fetchArchivedAnnouncements = async () => {
+    try {
+      const response = await api.get('/announcements/archived')
+      setArchivedAnnouncements(response.data)
+    } catch (error) {
+      console.error('Failed to fetch archived announcements:', error)
+    }
+  }
+
+  const handleArchive = async (id) => {
+    try {
+      await api.delete(`/announcements/${id}`)
+      toast.success('Announcement archived')
+      fetchAnnouncements()
+      if (showArchivedModal) fetchArchivedAnnouncements()
+    } catch (error) {
+      toast.error('Failed to archive announcement')
+    }
+  }
+
+  const handleRestore = async (id) => {
+    try {
+      await api.put(`/announcements/${id}/restore`)
+      toast.success('Announcement restored')
+      fetchArchivedAnnouncements()
+    } catch (error) {
+      toast.error('Failed to restore announcement')
     }
   }
 
@@ -48,24 +83,37 @@ export default function Announcements() {
     }
   }
 
-  const handleDelete = async (id) => {
-    try {
-      await api.delete(`/announcements/${id}`)
-      toast.success('Announcement deleted')
-      fetchAnnouncements()
-    } catch (error) {
-      toast.error('Failed to delete')
+  const handleConfirmAction = async () => {
+    if (!confirmItemId) return
+    
+    if (confirmAction === 'archive') {
+      await handleArchive(confirmItemId)
+    } else if (confirmAction === 'restore') {
+      await handleRestore(confirmItemId)
     }
+    
+    setShowConfirmModal(false)
+    setConfirmAction(null)
+    setConfirmItemId(null)
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-navy-900">Announcements</h1>
-        <Button onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-2 inline" />
-          New Announcement
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowModal(true)}>
+            <Plus className="w-4 h-4 mr-2 inline" />
+            New Announcement
+          </Button>
+          <Button variant="outline" onClick={() => {
+            setShowArchivedModal(true)
+            fetchArchivedAnnouncements()
+          }}>
+            <Archive className="w-4 h-4 mr-2 inline" />
+            View Archived
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -101,10 +149,15 @@ export default function Announcements() {
                     <Edit className="w-4 h-4" />
                   </button>
                   <button 
-                    onClick={() => handleDelete(announcement._id)}
-                    className="text-red-600 hover:text-red-800"
+                    onClick={() => {
+                      setConfirmAction('archive')
+                      setConfirmItemId(announcement._id)
+                      setShowConfirmModal(true)
+                    }}
+                    className="text-orange-600 hover:text-orange-800"
+                    title="Archive"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Archive className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -178,6 +231,75 @@ export default function Announcements() {
             <Button type="submit">{editingAnnouncement ? 'Update' : 'Post'} Announcement</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal 
+        isOpen={showConfirmModal} 
+        onClose={() => setShowConfirmModal(false)} 
+        title={confirmAction === 'archive' ? 'Confirm Archive' : 'Confirm Restore'}
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            {confirmAction === 'archive' 
+              ? 'Are you sure you want to archive this announcement? It will be moved to archived items and can be restored later.'
+              : 'Are you sure you want to restore this announcement? It will be moved back to active announcements.'}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowConfirmModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmAction}
+              variant={confirmAction === 'archive' ? 'danger' : 'primary'}
+            >
+              {confirmAction === 'archive' ? 'Archive' : 'Restore'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal 
+        isOpen={showArchivedModal} 
+        onClose={() => setShowArchivedModal(false)} 
+        title="Archived Announcements"
+        size="lg"
+      >
+        <div className="space-y-4">
+          {archivedAnnouncements.map((announcement) => (
+            <div key={announcement._id} className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-gray-100 rounded-lg">
+                    <Megaphone className="w-5 h-5 text-gray-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-navy-900">{announcement.title}</h3>
+                    <p className="text-sm text-gray-600">
+                      {(new Date(announcement.createdAt)).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    setConfirmAction('restore')
+                    setConfirmItemId(announcement._id)
+                    setShowConfirmModal(true)
+                  }}
+                  className="text-green-600 hover:text-green-800"
+                  title="Restore"
+                >
+                  <ArchiveRestore className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-gray-700 mt-2">{announcement.body}</p>
+            </div>
+          ))}
+          {archivedAnnouncements.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No archived announcements
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   )

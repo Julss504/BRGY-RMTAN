@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Users, Megaphone, Trash2, AlertCircle, FileText } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Card from '../../components/ui/Card.jsx'
 import api from '../../services/api.js'
 
@@ -13,13 +14,14 @@ export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch stats in parallel
         const [residentsResp, announcementsResp, requestsResp, alertsResp] = await Promise.all([
-          api.get('/profiles/count'),
+          api.get('/profile-settings/count'),
           api.get('/announcements'),
           api.get('/document-requests'),
           api.get('/disaster-alerts')
@@ -172,19 +174,31 @@ export default function Dashboard() {
         <Card>
           <h2 className="text-lg font-semibold text-navy-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center">
+            <button
+              onClick={() => navigate('/admin/announcements')}
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
+            >
               <Megaphone className="w-8 h-8 text-orange-500 mx-auto mb-2" />
               <span className="text-sm font-medium">New Announcement</span>
             </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center">
+            <button
+              onClick={() => navigate('/admin/disaster-management')}
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
+            >
               <AlertCircle className="w-8 h-8 text-navy-600 mx-auto mb-2" />
               <span className="text-sm font-medium">Emergency Alert</span>
             </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center">
+            <button
+              onClick={() => navigate('/admin/waste-management')}
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
+            >
               <Trash2 className="w-8 h-8 text-orange-500 mx-auto mb-2" />
               <span className="text-sm font-medium">Update Schedule</span>
             </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center">
+            <button
+              onClick={() => navigate('/admin/document-requests')}
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
+            >
               <FileText className="w-8 h-8 text-navy-600 mx-auto mb-2" />
               <span className="text-sm font-medium">Generate Report</span>
             </button>

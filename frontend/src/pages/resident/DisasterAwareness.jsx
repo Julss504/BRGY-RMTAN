@@ -13,7 +13,7 @@ export default function DisasterAwareness() {
 
   const fetchAlerts = async () => {
     try {
-      const response = await api.get('/disaster-alerts?isActive=true')
+      const response = await api.get('/disaster-alerts')
       setAlerts(response.data)
     } catch (error) {
       console.error('Failed to fetch alerts:', error)

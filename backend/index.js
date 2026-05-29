@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/v1/auth', require('./routes/authRoutes'));
-app.use('/api/v1/profiles', require('./routes/profileRoutes'));
+app.use('/api/v1/profile-settings', require('./routes/residentProfileSettingsRoutes'));
 app.use('/api/v1/announcements', require('./routes/announcementRoutes'));
 app.use('/api/v1/waste-schedules', require('./routes/wasteScheduleRoutes'));
 app.use('/api/v1/disaster-alerts', require('./routes/disasterAlertRoutes'));

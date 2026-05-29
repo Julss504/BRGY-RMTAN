@@ -26,7 +26,7 @@ export default function WasteSchedule() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-navy-900">Waste Collection Schedule</h1>
-        <select 
+        <select
           value={filterPurok}
           onChange={(e) => setFilterPurok(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
@@ -61,10 +61,18 @@ export default function WasteSchedule() {
                   <Calendar className="w-4 h-4" />
                   <span>{(new Date(schedule.date)).toLocaleDateString()}</span>
                 </div>
-                <p className="text-sm text-gray-600">{schedule.time}</p>
+                <p className="text-sm text-gray-600">{schedule.startTime} - {schedule.endTime}</p>
                 <Badge variant="info" className="mt-1 capitalize">
                   {schedule.wasteType?.replace('-', ' ')}
                 </Badge>
+                {schedule.status && (
+                  <Badge
+                    variant={schedule.status === 'completed' ? 'success' : schedule.status === 'ongoing' ? 'warning' : schedule.status === 'cancelled' ? 'danger' : 'default'}
+                    className="mt-1 capitalize"
+                  >
+                    {schedule.status}
+                  </Badge>
+                )}
               </div>
             </div>
           </Card>

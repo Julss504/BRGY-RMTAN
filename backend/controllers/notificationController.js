@@ -12,14 +12,14 @@ const getMyNotifications = async (req, res) => {
 
 const sendNotification = async (req, res) => {
   try {
-    const { message, type, targetPurok, all } = req.body;
+    const { title, message, type, targetPurok, all } = req.body;
     
     let users;
     if (all) {
       users = await User.find({ role: 'resident' });
     } else if (targetPurok) {
-      const ResidentProfile = require('../models/ResidentProfile');
-      const profiles = await ResidentProfile.find({ purokZone: targetPurok });
+      const ResidentProfileSettings = require('../models/ResidentProfileSettings');
+      const profiles = await ResidentProfileSettings.find({ purokZone: targetPurok });
       const userIds = profiles.map(p => p.userId);
       users = await User.find({ _id: { $in: userIds }, role: 'resident' });
     } else {
@@ -28,8 +28,9 @@ const sendNotification = async (req, res) => {
     
     const notifications = users.map(user => ({
       userId: user._id,
+      title,
       message,
-      type: type || 'announcement',
+      type: type || 'announcement'
     }));
     
     await Notification.insertMany(notifications);

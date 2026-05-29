@@ -15,6 +15,10 @@ const documentRequestSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  supportingInfo: {
+    type: String,
+    trim: true
+  },
   status: {
     type: String,
     enum: ['Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Rejected'],

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, Check, X } from 'lucide-react'
+import { Search, Check, X, Eye } from 'lucide-react'
 import Card from '../../components/ui/Card.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Badge from '../../components/ui/Badge.jsx'
@@ -15,6 +15,8 @@ export default function ResidentManagement() {
   const [denyReason, setDenyReason] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPurok, setFilterPurok] = useState('')
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [selectedResidentDetails, setSelectedResidentDetails] = useState(null)
 
   useEffect(() => {
     fetchResidents()
@@ -36,6 +38,21 @@ export default function ResidentManagement() {
       setPendingUsers(response.data)
     } catch (error) {
       console.error('Failed to fetch pending users:', error)
+    }
+  }
+
+  const fetchResidentDetails = async (userId) => {
+    try {
+      const profileResponse = await api.get(`/profile-settings/${userId}`)
+      const userResponse = await api.get(`/auth/users/${userId}`)
+      setSelectedResidentDetails({
+        ...userResponse.data,
+        profile: profileResponse.data
+      })
+      setShowDetailsModal(true)
+    } catch (error) {
+      console.error('Failed to fetch resident details:', error)
+      toast.error('Failed to load resident details')
     }
   }
 
@@ -65,6 +82,14 @@ export default function ResidentManagement() {
       toast.error('Failed to deny user')
     }
   }
+
+  const filteredResidents = residents.filter((resident) => {
+    const matchesSearch = searchTerm === '' ||
+      resident.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resident.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPurok = filterPurok === '' || resident.purokZone === filterPurok;
+    return matchesSearch && matchesPurok;
+  });
 
   return (
     <div>
@@ -150,28 +175,46 @@ export default function ResidentManagement() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-2">Name</th>
-                <th className="text-left py-2">Email</th>
-                <th className="text-left py-2">Role</th>
-                <th className="text-left py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {residents.map((resident) => (
-                <tr key={resident._id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3">{resident.fullName}</td>
-                  <td className="py-3">{resident.email}</td>
-                  <td className="py-3 capitalize">{resident.role}</td>
-                  <td className="py-3">
-                    <Badge variant={resident.status === 'approved' ? 'success' : 'warning'}>
-                      {resident.status}
-                    </Badge>
-                  </td>
+<thead>
+               <tr className="border-b border-gray-200">
+                 <th className="text-left py-2">Name</th>
+                 <th className="text-left py-2">Email</th>
+<th className="text-left py-2">Purok/Zone</th>
+                  <th className="text-left py-2">Status</th>
+                  <th className="text-left py-2">Actions</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody>
+                {filteredResidents.map((resident) => (
+                  <tr key={resident._id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3">{resident.fullName}</td>
+                    <td className="py-3">{resident.email}</td>
+                    <td className="py-3">{resident.purokZone || '-'}</td>
+                    <td className="py-3">
+                      <Badge variant={resident.status === 'approved' ? 'success' : 'warning'}>
+                        {resident.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => fetchResidentDetails(resident._id)}
+                      >
+                        <Eye className="w-4 h-4 mr-1 inline" />
+                        Details
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+{filteredResidents.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="py-8 text-center text-gray-500">
+                      No residents found matching your criteria
+                    </td>
+                  </tr>
+                )}
+             </tbody>
           </table>
         </div>
       </Card>
@@ -199,6 +242,103 @@ export default function ResidentManagement() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal 
+        isOpen={showDetailsModal} 
+        onClose={() => setShowDetailsModal(false)} 
+        title="Resident Details"
+        size="lg"
+      >
+        {selectedResidentDetails && (
+          <div className="space-y-6">
+            <div className="border-b pb-4">
+              <h3 className="font-medium text-navy-800 mb-3">Account Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div><span className="font-medium">Full Name:</span> {selectedResidentDetails.fullName || '-'}</div>
+                <div><span className="font-medium">Email:</span> {selectedResidentDetails.email || '-'}</div>
+                <div><span className="font-medium">Contact Number:</span> {selectedResidentDetails.contactNumber || '-'}</div>
+                <div><span className="font-medium">Status:</span> <Badge variant={selectedResidentDetails.status === 'approved' ? 'success' : 'warning'}>{selectedResidentDetails.status}</Badge></div>
+              </div>
+            </div>
+
+            {selectedResidentDetails.profile && (
+              <>
+                <div className="border-b pb-4">
+                  <h3 className="font-medium text-navy-800 mb-3">Personal Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div><span className="font-medium">Full Name:</span> {selectedResidentDetails.profile.fullName || '-'}</div>
+                    <div><span className="font-medium">Nickname:</span> {selectedResidentDetails.profile.nickname || '-'}</div>
+                    <div><span className="font-medium">Date of Birth:</span> {selectedResidentDetails.profile.dateOfBirth ? new Date(selectedResidentDetails.profile.dateOfBirth).toLocaleDateString() : '-'}</div>
+                    <div><span className="font-medium">Age:</span> {selectedResidentDetails.profile.dateOfBirth ? new Date().getFullYear() - new Date(selectedResidentDetails.profile.dateOfBirth).getFullYear() : '-'}</div>
+                    <div><span className="font-medium">Sex:</span> {selectedResidentDetails.profile.sex || '-'}</div>
+                    <div><span className="font-medium">Civil Status:</span> {selectedResidentDetails.profile.civilStatus || '-'}</div>
+                    <div><span className="font-medium">Religion:</span> {selectedResidentDetails.profile.religion || '-'}</div>
+                    <div><span className="font-medium">Nationality:</span> {selectedResidentDetails.profile.nationality || '-'}</div>
+                    <div><span className="font-medium">Place of Birth:</span> {selectedResidentDetails.profile.placeOfBirth || '-'}</div>
+                  </div>
+                </div>
+
+                <div className="border-b pb-4">
+                  <h3 className="font-medium text-navy-800 mb-3">Address Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div><span className="font-medium">House/Unit No.:</span> {selectedResidentDetails.profile.houseUnitNo || '-'}</div>
+                    <div><span className="font-medium">Purok/Zone:</span> {selectedResidentDetails.profile.purokZone || '-'}</div>
+                    <div><span className="font-medium">Street:</span> {selectedResidentDetails.profile.street || '-'}</div>
+                    <div><span className="font-medium">Barangay:</span> {selectedResidentDetails.profile.barangay || 'R.M. Tan'}</div>
+                    <div><span className="font-medium">City:</span> {selectedResidentDetails.profile.municipality || 'Ormoc'}</div>
+                    <div><span className="font-medium">Province:</span> {selectedResidentDetails.profile.province || 'Leyte'}</div>
+                  </div>
+                </div>
+
+                <div className="border-b pb-4">
+                  <h3 className="font-medium text-navy-800 mb-3">Family Background</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div><span className="font-medium">Father's Name:</span> {selectedResidentDetails.profile.fatherFullName || '-'}</div>
+                    <div><span className="font-medium">Father's Occupation:</span> {selectedResidentDetails.profile.fatherOccupation || '-'}</div>
+                    <div><span className="font-medium">Father's Contact:</span> {selectedResidentDetails.profile.fatherContact || '-'}</div>
+                    <div><span className="font-medium">Father's Status:</span> {selectedResidentDetails.profile.fatherLivingStatus || '-'}</div>
+                    <div><span className="font-medium">Mother's Name:</span> {selectedResidentDetails.profile.motherFullName || '-'}</div>
+                    <div><span className="font-medium">Mother's Occupation:</span> {selectedResidentDetails.profile.motherOccupation || '-'}</div>
+                    <div><span className="font-medium">Mother's Contact:</span> {selectedResidentDetails.profile.motherContact || '-'}</div>
+                    <div><span className="font-medium">Mother's Status:</span> {selectedResidentDetails.profile.motherLivingStatus || '-'}</div>
+                    <div><span className="font-medium">No. of Siblings:</span> {selectedResidentDetails.profile.numberOfSiblings ?? 0}</div>
+                    <div><span className="font-medium">Position in Family:</span> {selectedResidentDetails.profile.positionInFamily ?? 1}</div>
+                  </div>
+                </div>
+
+                <div className="border-b pb-4">
+                  <h3 className="font-medium text-navy-800 mb-3">Education & Employment</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div><span className="font-medium">Education Attainment:</span> {selectedResidentDetails.profile.educationAttainment || '-'}</div>
+                    <div><span className="font-medium">Current School:</span> {selectedResidentDetails.profile.currentSchool || '-'}</div>
+                    <div><span className="font-medium">Employer:</span> {selectedResidentDetails.profile.employer || '-'}</div>
+                    <div><span className="font-medium">Employment Status:</span> {selectedResidentDetails.profile.employmentStatus || '-'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-medium text-navy-800 mb-3">Other Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div><span className="font-medium">Voter Status:</span> {selectedResidentDetails.profile.voterRegistrationStatus || '-'}</div>
+                    <div><span className="font-medium">4Ps Beneficiary:</span> {selectedResidentDetails.profile.beneficiary4Ps ? 'Yes' : 'No'}</div>
+                    <div><span className="font-medium">PhilHealth Member:</span> {selectedResidentDetails.profile.philhealthMember ? 'Yes' : 'No'}</div>
+                    <div><span className="font-medium">SSS Member:</span> {selectedResidentDetails.profile.sssMember ? 'Yes' : 'No'}</div>
+                    <div><span className="font-medium">GSIS Member:</span> {selectedResidentDetails.profile.gsisMember ? 'Yes' : 'No'}</div>
+                    <div><span className="font-medium">Emergency Contact:</span> {selectedResidentDetails.profile.emergencyContactPerson || '-'}</div>
+                    <div><span className="font-medium">Relationship:</span> {selectedResidentDetails.profile.emergencyContactRelationship || '-'}</div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setShowDetailsModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )

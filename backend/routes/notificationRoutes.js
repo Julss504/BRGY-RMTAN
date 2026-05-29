@@ -5,7 +5,7 @@ const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/role');
 
 router.get('/', authenticate, notificationController.getMyNotifications);
-router.put('/send', authenticate, authorize('admin'), notificationController.sendNotification);
+router.post('/send', authenticate, authorize('admin'), notificationController.sendNotification);
 router.patch('/:id/read', authenticate, notificationController.markAsRead);
 router.patch('/read-all', authenticate, notificationController.markAllAsRead);
 router.delete('/:id', authenticate, notificationController.deleteNotification);
